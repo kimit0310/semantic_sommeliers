@@ -3,11 +3,11 @@ import torchaudio
 import torch
 import os
 import glob
-import io
 from dotenv import load_dotenv
 import pyloudnorm as pyln
 import numpy as np
 import json
+import tempfile
 
 def prepare_env():
     load_dotenv()
@@ -17,8 +17,13 @@ def extract_audio_from_video(video_path):
     Extracts audio from video with no compression and returns audio bytes.
     """
     stream = ffmpeg.input(video_path)
-    audio = stream.audio.output('pipe:', format='wav', acodec='pcm_s16le')
-    out, _ = ffmpeg.run(audio, capture_stdout=True, capture_stderr=True)
+    mixed_audio = ffmpeg.filter([stream], 'amix', inputs=2, duration='longest')
+    audio = mixed_audio.output('pipe:', format='wav', acodec='pcm_s16le')
+    try:
+        out, _ = ffmpeg.run(audio, capture_stdout=True, capture_stderr=True)
+    except ffmpeg.Error as e:
+        print("ffmpeg error:", e.stderr.decode('utf-8'))
+        raise e
     return out
 
 def convert_stereo_to_mono(waveform):
@@ -44,13 +49,27 @@ def save_audio(waveform, sample_rate, output_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     torchaudio.save(output_path, waveform, sample_rate, bits_per_sample=16)
 
+def load_audio_from_bytes(audio_bytes, format):
+    """
+    Loads audio from bytes by first writing to a temporary file, then loading it.
+    """
+    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_audio_file:
+        # Write the audio bytes to a temporary file
+        temp_audio_file.write(audio_bytes)
+        temp_audio_file.seek(0)  # Go back to the start of the file
+        
+        # Load the audio from the temporary file
+        waveform, sample_rate = torchaudio.load(temp_audio_file.name, format=format)
+        
+    return waveform, sample_rate
+
 def pre_process_audio_from_video(video_path, output_path):
     """
     Extracts audio from a video file, converts it to mono and 16kHz sample rate,
     and saves it as a 16-bit WAV file.
     """
     audio_bytes = extract_audio_from_video(video_path)
-    waveform, sample_rate = torchaudio.load(io.BytesIO(audio_bytes), format='wav')
+    waveform, sample_rate = load_audio_from_bytes(audio_bytes, 'wav')
     waveform_mono = convert_stereo_to_mono(waveform)
     waveform_resampled, new_sample_rate = resample_audio(waveform_mono, sample_rate)
     normalized_waveform = normalize_loudness(waveform_resampled, new_sample_rate, target_loudness=-23)

@@ -1,7 +1,7 @@
 from my_utils.utility import list_files, pre_process_audio_from_video
 def __main__():
-    video_format = 'mp4'
-    visual_stimuli_folder = '../data/speech_language_instructions'
+    video_format = 'MXF'
+    visual_stimuli_folder = '../data/sessions'
     audio_format = 'wav'
 
     file_list = list_files(visual_stimuli_folder, video_format)
