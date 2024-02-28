@@ -19,11 +19,11 @@ class WhisperxWrapper:
         """
         return whisperx.load_audio(audio_file)
 
-    def transcribe_audio(self, audio, batch_size=16):
+    def transcribe_audio(self, audio, batch_size=16, language=None):
         """
         Transcribes the audio file using FasterWhisper model.
         """
-        result = self.faster_whisper.transcribe(audio, batch_size=batch_size)
+        result = self.faster_whisper.transcribe(audio, batch_size=batch_size, language=language)
         # print("Transcription (before alignment):", result["segments"])
         return result
 
@@ -46,12 +46,12 @@ class WhisperxWrapper:
         # print("Transcription with speaker labels:", result_with_speakers["segments"])
         return result_with_speakers
 
-    def process_audio_file(self, audio_file, batch_size=16, num_speakers=None, min_speakers=None, max_speakers=None):
+    def process_audio_file(self, audio_file, batch_size=16, num_speakers=None, min_speakers=None, max_speakers=None, language=None):
         """
         Main function to process the audio file: transcribes, aligns, and assigns speaker labels.
         """
         audio = self.load_audio(audio_file)
-        transcription_result = self.transcribe_audio(audio, batch_size=batch_size)
+        transcription_result = self.transcribe_audio(audio, batch_size=batch_size, language=language)
         aligned_transcription = self.align_transcript(transcription_result, audio)
         aligned_asigned_transcription = self.assign_speaker_labels(audio, aligned_transcription, num_speakers, min_speakers, max_speakers)
 
