@@ -2,3 +2,8 @@ torch
 torchaudio
 torchvideo
 ffmpeg-python
+whisperx @ git+https://github.com/m-bain/whisperx.git
+python-dotenv
+pyloudnorm
+scikit-learn
+sentence-transformers
