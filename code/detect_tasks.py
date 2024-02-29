@@ -12,10 +12,6 @@ def main(instructions_json, sessions_json):
     instructions = get_protocol_instructions(instructions_json)
     sessions = get_sessions(sessions_json)
 
-    print(instructions)
-    print(sessions)
-    input("hhh")
-
     sessions_scores = []
     for session in sessions:
         session_scores = []
@@ -28,33 +24,35 @@ def main(instructions_json, sessions_json):
             session_scores.append(instruction_scores)
         sessions_scores.append(session_scores)
 
-    print(sessions_scores)
-    input("hhh")
-
-
+    sessions_starting_times = []
     for session in sessions_scores:
+        starting_times = []
         for sentence in session:
             all_similarities = [instruction[1] for instruction in sentence]
             max_value = max(all_similarities)
             max_index = all_similarities.index(max_value)
+            if len(starting_times) == 0:
+                for _ in range(int(max_index/2)):
+                    starting_times.append(None)
+                starting_times.append(sentence[max_index])
+            elif len(starting_times) > 0 and max_index/2 == len(starting_times):
+                starting_times.append(sentence[max_index])
+            
             print(max_value)
             print(max_index/2)
             print(sentence[max_index])
+        sessions_starting_times.append(starting_times)
 
-    input("hhh")
+    print(sessions_starting_times)
+    for i, session in enumerate(sessions_starting_times):
+        with open(f'../data/sessions_tasks_start_{i}.txt', 'w') as f:
+            for j, task in enumerate(session):
+                if task:
+                    start = task[0]
+                    label = j + 1
+                    f.write(f'{start}\t{start}\t{label}\n')
 
 
-    sessions_scores = []
-    for session in sessions_json:
-        session_scores = []
-        for instruction in instructions:
-            instructions_scores = {}
-            for utterance, start, end in get_utterances(session):
-                instruction_scores = []
-                similarity = calculate_similarity(utterance, instruction, similarity_calculator)
-                instruction_scores.append([start, similarity])
-                instruction_scores.append([end, similarity])
-        session_scores.append(instruction_scores)
 
 def get_sessions(sessions_json):
     with open(sessions_json, 'r') as f:
