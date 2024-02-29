@@ -44,8 +44,9 @@ def main(instructions_json, sessions_json):
         sessions_starting_times.append(starting_times)
 
     # print(sessions_starting_times)
+    os.mkdir('../data/tasks_detected').mkdir(parents=True, exist_ok=True)
     for i, session in enumerate(sessions_starting_times):
-        with open(f'../data/sessions_tasks_start_{i}.txt', 'w') as f:
+        with open(f'../data/tasks_detected/sessions_tasks_start_{i}.txt', 'w') as f:
             for j, task in enumerate(session):
                 if task:
                     start = task[0]
