@@ -10,6 +10,8 @@ def main(instructions_json, sessions_json):
     similarity_calculator = SemanticSimilarityCalculator()
 
     instructions = get_protocol_instructions(instructions_json)
+    print(instructions)
+    input("ss")
     sessions = get_sessions(sessions_json)
 
     sessions_scores = []
@@ -38,13 +40,13 @@ def main(instructions_json, sessions_json):
             elif len(starting_times) > 0 and max_index/2 == len(starting_times):
                 starting_times.append(sentence[max_index])
             
-            #print(max_value)
-            #print(max_index/2)
-            #print(sentence[max_index])
+            print(max_value)
+            print(max_index/2)
+            print(sentence[max_index])
         sessions_starting_times.append(starting_times)
 
     # print(sessions_starting_times)
-    os.mkdir('../data/tasks_detected').mkdir(parents=True, exist_ok=True)
+    os.makedirs('../data/tasks_detected', exist_ok=True)
     for i, session in enumerate(sessions_starting_times):
         with open(f'../data/tasks_detected/sessions_tasks_start_{i}.txt', 'w') as f:
             for j, task in enumerate(session):
@@ -68,12 +70,12 @@ def get_sessions(sessions_json):
             for segment in child['segments']:
                 #print(segment)
                 start = segment['start']
-                speaker = segment['speaker']
-                print(speaker)
+                speaker = segment['speaker'] if 'speaker' in segment else old_speaker
+                #print(speaker)
                 end = segment['end']
                 text = segment['text']
-                print(text)
-                print(old_text)
+                #print(text)
+                #print(old_text)
                 if old_speaker != speaker:
                     session.append([old_text, old_start, end])
                     old_start = start
@@ -122,4 +124,4 @@ def plot_similarity(times, similarities, filename):
     plt.legend()
     plt.show()
 
-main("../data/instructions/speech_language_instructions.json", "../data/iktae_test.json")
+main("../data/instructions/speech_language_instructions.json", "../data/5253316_speech_language_transcription 2.json")
