@@ -38,12 +38,12 @@ def main(instructions_json, sessions_json):
             elif len(starting_times) > 0 and max_index/2 == len(starting_times):
                 starting_times.append(sentence[max_index])
             
-            print(max_value)
-            print(max_index/2)
-            print(sentence[max_index])
+            #print(max_value)
+            #print(max_index/2)
+            #print(sentence[max_index])
         sessions_starting_times.append(starting_times)
 
-    print(sessions_starting_times)
+    # print(sessions_starting_times)
     for i, session in enumerate(sessions_starting_times):
         with open(f'../data/sessions_tasks_start_{i}.txt', 'w') as f:
             for j, task in enumerate(session):
