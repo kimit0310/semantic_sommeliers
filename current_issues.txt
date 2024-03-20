@@ -1,0 +1,31 @@
+# 5023141_speech_language_non.wav
+# 5195387_speech_language_non.wav
+# 5282397_speech_language_non.wav
+- the video instructions are not played (the investigator explains the tasks in person)
+
+# 5413094_speech_language.wav
+- the computer breaks at some point in the session and we can manage it
+
+# 5253316_speech_language.wav
+- Whisper's transcript timestamps are wrong and this messes up the rest of the pipeline
+
+# 5031633_speech_language.wav
+- Whisper's transcript timestamps are wrong and this messes up the rest of the pipeline
+- the session doesn't start with instruction 0 and we can manage it
+
+# 5030023_speech_language_non.wav
+- Whisper doesn't detect the first sentence of the stories
+
+# 5156180_speech_language.wav
+- the session doesn't start with instruction 0 and we can manage it
+- we don't detect instructions 10 and 35
+- Whisper doesn't detect the first sentence of the stories
+
+# 5334942_speech_languageB.wav
+- the session starts with instruction 4, and we can manage it
+- we don't detect instructions 15, 16 and 24
+- Whisper doesn't detect the first sentence of the stories
+
+# 5270706_speech_language.wav
+- we don't detect instructions 22, 23, 24
+- the child doesn't want to read the stories. the investigator reads the sentences and the child repeats them. still,  Whisper doesn't detect the first sentence of the stories 
