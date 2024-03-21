@@ -19,6 +19,8 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 import math
+import argparse
+import whisperx
 
 warnings.filterwarnings("ignore")
 
@@ -26,9 +28,6 @@ data_folder = "data/"
 instructions_folder = os.path.join(data_folder, "instructions")
 sessions_folder = os.path.join(data_folder, "sessions")
 cross_correlations_folder = os.path.join(data_folder, "cross_correlation")
-audacity_folder = os.path.join(data_folder, "audacity")
-transcriptions_folder = os.path.join(data_folder, "transcriptions")
-similarity_folder = os.path.join(data_folder, "similarity")
 
 ############## PARAMS ##############
 normalization = True
@@ -46,8 +45,30 @@ non_word_instructions_absolute_peak_height = 0.05
 story1 = 'It was the first day of school. It was a tough day for all the kids. One girl had a really hard time because nobody could say her name. Her name was Peggy Babcock. Go ahead. Try and say it three times quickly. “Peggy Babcock Peggy Babcock Peggy Babcock.” Not easy going, right? She was afraid to say hello to any of the other kids on the playground. One boy walked up to her and asked what her name was. She said “When you hear my name it sounds simple but no one can say it. It is Peggy Babcock.” He laughed and said “Your name is tricky but mine is better. It sounds simple but no one can remember it. It is Jonas Norvin Sven Arthur Schwinn Bart Winston Ulysses M.” Peggy laughed and said “Easy. Your name sounds like Joan is nervous when others win. But you win some, you lose some. How do you like my version?" Jonas was so happy that he said “Lets be friends. I will call you PB.” The pair of them stuck so close to each other that everyone at school called them “PB and J.”'
 story2 = 'Some time ago, in a place neither near nor far, there lived a king who did not know how to count, not even to zero. Some say this is the reason he would always wish for more — more food, more gold, more land. He simply did not realize how much he already owned. Everyone in his kingdom could do the math and tally bushels of corn, loaves of bread, and urns of gold. But how would they measure the height of his castle or the stretch of his kingdom? You might think “Aaah, ooh, easy — just measure it in meters!” But in those days, the useless unit of measure was based on stains splattered along the king s cloak while drinking shrub juice. The kingdom needed a new way of counting distance. “A kingdom without a proper ruler,” proclaimed the king, “is like riches without measure.” He launched a challenge amid trumpets, drums, flags and cannons. “The person who creates a unit of measure fit for a ruler will be rewarded beyond measure!” A tall order indeed! The first person to come forward was a bulky locksmith with a stiff jaw. He approached the king with an air of secrecy and whispered, “I have the key to measure the kingdom, but only I can wield it.” He then rubbed his beard and pulled the key from his locks of oily hair. The key turned out to be a hair itself! “Judge the reach of my vast kingdom with a hair s width?” laughed the king. “What a poor idea. That would take forever or longer!” The second person eager for the prize was a fidgety boy who knew all numbers (including zero). He produced a curious object from one of his many pockets. It was a complex shape that seemed to change proportions depending on which direction you gazed upon it. The boy said in a measured voice, “This polyhedron has many edges, with each edge of a different length. Only a king could be counted on to use it justly.” He gave the king an awful earful of an explanation that went on and on. The long and the short of it was that the king could make no more use of it than of a puddle of spilled oatmeal. Finally, a little girl with a big idea tugged on the mismeasured cloak of the king. The king sized up the little girl with the big idea and said “I don’t have time for this, and for that matter, I have no concept of space, either.” The girl looked up, then down, then spun around and blurted out: “Aren’t you able to solve the puzzle yourself? Why must you break up your kingdom into tiny pieces when everything around you is Humpty Dumpty together again? Your kingdom IS a unit and you are the ruler.” The king — startled, befuddled, and bemused — found the words wise. He aimed to be satisfied with all around him, big or small or somewhere in between.'
 stories = [story1, story2]
-session_file_path = os.path.join(sessions_folder, "5023141_speech_language_non.wav")
 ############## PARAMS ##############
+
+
+def generate_json(input_json):
+    segments = input_json["segments"]
+    concatenated_text = ""
+    chunks = []
+
+    for segment in segments:
+        for word_info in segment["words"]:
+            concatenated_text += word_info["word"] + " "
+            chunks.append({
+                "text": word_info["word"],
+                "timestamp": [word_info["start"], word_info["end"]]
+            })
+
+    concatenated_text = concatenated_text.strip()
+
+    output_json = {
+        "text": concatenated_text,
+        "chunks": chunks
+    }
+
+    return output_json
 
 def load_audio(path, new_sample_rate=None, filtering=False, lowcut=None, highcut=None, normalization=False, max_length=None):
     waveform, sample_rate = torchaudio.load(path)
@@ -106,7 +127,7 @@ def save_cross_correlation(cross_correlation, peaks_indices, file_path):
     plt.grid(True)
     plt.savefig(file_path)
 
-def save_audacity_file(session_file_path, instructions_timings):
+def save_audacity_file(audacity_folder, session_file_path, instructions_timings):
     os.makedirs(audacity_folder, exist_ok=True)
     with open(os.path.join(audacity_folder, os.path.basename(session_file_path)[:-4] + '.txt'), 'w', encoding='utf-8') as file:
         for instructions_timing in instructions_timings:
@@ -302,7 +323,21 @@ pipe = pipeline(
 )
 
 def __main__():
-    # TODO: read params from command line
+    parser = argparse.ArgumentParser(description="Example of reading session_name from CLI parameters.")
+    parser.add_argument("session_name", help="Name of the session")
+    parser.add_argument("transcript_tool", help="Name of the transcript_tool")
+    args = parser.parse_args()
+
+    session_name = args.session_name
+    transcript_tool = args.transcript_tool
+
+    audacity_folder = os.path.join(data_folder, f"audacity_{transcript_tool}")
+    transcriptions_folder = os.path.join(data_folder, f"transcriptions_{transcript_tool}")
+    similarity_folder = os.path.join(data_folder, f"similarity_{transcript_tool}")
+
+    print("Session Name:", session_name)
+
+    session_file_path = os.path.join(sessions_folder, session_name)
     print(session_file_path)
     instruction_file_paths = get_instructions(instructions_folder)
     story_timings = [ None ] * len(stories)
@@ -315,7 +350,21 @@ def __main__():
         with open(session_transcript_file, "r", encoding='utf-8') as f:
             result = json.load(f)
     else:
-        result = pipe(waveform_session.numpy(), generate_kwargs={"language": "english"})
+        if transcript_tool == "whisper":
+            result = pipe(waveform_session.numpy(), generate_kwargs={"language": "english"})
+        else:
+            # 1. Transcribe with original whisper (batched)
+            whisperx_model = whisperx.load_model("tiny", device, compute_type="int8", language="en") # large-v3
+
+            audio = whisperx.load_audio(session_file_path)
+            result = whisperx_model.transcribe(audio, language="en", batch_size=16)
+
+            # 2. Align whisper output
+            model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=device)
+            result = whisperx.align(result["segments"], model_a, metadata, audio, device, return_char_alignments=False)
+
+            result = generate_json(result)
+        os.makedirs(transcriptions_folder, exist_ok=True)
         with open(session_transcript_file, "w", encoding='utf-8') as f:
             json.dump(result, f)
     chunks = result['chunks']
@@ -393,6 +442,6 @@ def __main__():
         plot_cross_correlation(session_file_path, instruction_file_path, min_max_normalized_cross_corr, peaks_indices)
     
     all_timings = story_timings + instructions_timings
-    save_audacity_file(session_file_path, all_timings)
+    save_audacity_file(audacity_folder, session_file_path, all_timings)
 
 __main__()
