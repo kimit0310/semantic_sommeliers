@@ -1,0 +1,11 @@
+torch
+torchaudio
+matplotlib
+pyloudnorm
+scipy
+numpy
+tqdm
+transformers
+sentence_transformers
+scikit-learn
+whisperx @ git+https://github.com/m-bain/whisperx.git
