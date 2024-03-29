@@ -1,3 +1,6 @@
 data/
 .ipynb_checkpoints/
 .DS_Store
+processed_sessions.txt
+profile_output.prof
+__pycache__/

@@ -19,6 +19,13 @@ import json
 import math
 import argparse
 import whisperx
+import sys
+
+# Assuming config.py is in the project's root directory, similar to experiments.py
+project_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root_dir)
+
+from config import Config
 
 def generate_json(input_json):
     segments = input_json["segments"]
@@ -28,10 +35,17 @@ def generate_json(input_json):
     for segment in segments:
         for word_info in segment["words"]:
             concatenated_text += word_info["word"] + " "
-            chunks.append({
-                "text": word_info["word"],
-                "timestamp": [word_info["start"], word_info["end"]]
-            })
+            # Check for the presence of 'start' and 'end' keys
+            start = word_info.get("start")
+            end = word_info.get("end")
+            if start is not None and end is not None:
+                chunks.append({
+                    "text": word_info["word"],
+                    "timestamp": [start, end]
+                })
+            else:
+                # Handle the case where 'start' or 'end' is missing
+                print(f"Warning: Missing timestamp for word '{word_info['word']}'")
 
     concatenated_text = concatenated_text.strip()
 
@@ -122,8 +136,8 @@ def get_sessions(sessions_folder):
 
 def plot_cross_correlation(session_file_path, instruction_file_path, standardized_normalized_cross_corr, peaks_indices):
     # TODO: PLOT CROSS CORRELATION WITH ABSOLUTE VALUES
-    os.makedirs(cross_correlations_folder, exist_ok=True)
-    cross_correlations_session_folder = os.path.join(cross_correlations_folder, os.path.basename(session_file_path)[:-4])
+    os.makedirs(Config.cross_correlations_folder, exist_ok=True)
+    cross_correlations_session_folder = os.path.join(Config.cross_correlations_folder, os.path.basename(session_file_path)[:-4])
     os.makedirs(cross_correlations_session_folder, exist_ok=True)
     cross_correlation_figure_file_name = f"{os.path.basename(instruction_file_path)[:-4]}_{os.path.basename(session_file_path)[:-4]}"
     save_cross_correlation(standardized_normalized_cross_corr, 
@@ -132,20 +146,20 @@ def plot_cross_correlation(session_file_path, instruction_file_path, standardize
 
 def get_peak_height(instruction_order):
     if instruction_order == 20:
-        peak_height = long_instructions_peak_height
-        absolute_peak_height = long_instructions_absolute_peak_height
+        peak_height = Config.long_instructions_peak_height
+        absolute_peak_height = Config.long_instructions_absolute_peak_height
     elif instruction_order == 37:
-        peak_height = long_instructions_peak_height
-        absolute_peak_height = long_instructions_absolute_peak_height
+        peak_height = Config.long_instructions_peak_height
+        absolute_peak_height = Config.long_instructions_absolute_peak_height
     elif instruction_order < 10:
-        peak_height = long_instructions_peak_height
-        absolute_peak_height = long_instructions_absolute_peak_height
+        peak_height = Config.long_instructions_peak_height
+        absolute_peak_height = Config.long_instructions_absolute_peak_height
     elif instruction_order < 20:
-        peak_height = word_instructions_peak_height
-        absolute_peak_height = word_instructions_absolute_peak_height
+        peak_height = Config.word_instructions_peak_height
+        absolute_peak_height = Config.word_instructions_absolute_peak_height
     else:
-        peak_height = non_word_instructions_peak_height
-        absolute_peak_height = non_word_instructions_absolute_peak_height
+        peak_height = Config.non_word_instructions_peak_height
+        absolute_peak_height = Config.non_word_instructions_absolute_peak_height
     return peak_height, absolute_peak_height
 
 def get_session_timings(instruction_order, instructions_timings, waveform_session, sr):
@@ -235,6 +249,12 @@ def find_story_in_session(session_transcript, session_tokens, story_tokens, thre
         similarities.append(similarity)
 
     normalized_similarities = np.abs(similarities)
+    
+    # Check if the similarities array is empty before further processing
+    if normalized_similarities.size == 0:
+        print(f"Warning: No similarities found for session. Skipping {file_path}")
+        return None
+    
     min_max_normalized_similarities = min_max_normalization(normalized_similarities)
     peaks_indices, _ = find_peaks(min_max_normalized_similarities, height=threshold, distance=len(story_tokens))
 
