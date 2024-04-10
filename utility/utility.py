@@ -266,7 +266,7 @@ def find_story_in_session(session_transcript, session_tokens, story_tokens, thre
     plt.title('Semantic Similarity Over Time')
     plt.xticks(rotation=45) # Rotating x-axis labels for better readability
 
-    absolute_peak_height = 0.75
+    absolute_peak_height = Config.story_absolute_peak_height
     print("max(normalized_similarities)")
     print(max(normalized_similarities))
     print("len(peaks_indices)")

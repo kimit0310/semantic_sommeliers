@@ -6,10 +6,13 @@ def run_experiment(session_file, transcript_tool):
     """
     Runs the experiments.py script with the given session file and transcript tool.
     """
-    script_path = os.path.join(os.getcwd(), "experiments.py")
-    command = f"python {script_path} {session_file} {transcript_tool}"
-    subprocess.run(command, shell=True, check=True)
-
+    command = [
+        'python',
+        os.path.join(os.getcwd(), "experiments.py"),
+        session_file,
+        transcript_tool
+    ]
+    subprocess.run(command, shell=False, check=True)
 def main():
     sessions_dir = os.path.join(os.getcwd(), "data", "sessions")
     transcript_tool = "whisperx"  # Assuming you want to use 'whisperx' for all

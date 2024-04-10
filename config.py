@@ -16,6 +16,7 @@ class Config:
     lowcut = 300.0
     highcut = 3000.0
     seconds_threshold = 3.0
+    story_absolute_peak_height = 0.75
     long_instructions_peak_height = 0.6
     word_instructions_peak_height = 0.8
     non_word_instructions_peak_height = 0.8
