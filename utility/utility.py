@@ -101,17 +101,17 @@ def min_max_normalization(arr):
     normalized_arr = (arr - arr_min) / (arr_max - arr_min)
     return normalized_arr
 
-def save_cross_correlation(cross_correlation, peaks_indices, file_path):
-    # Plotting
+def save_cross_correlation(cross_correlation, peaks_indices, time_values, file_path):
     plt.figure(figsize=(10, 6))
-    plt.plot(range(len(cross_correlation)), cross_correlation, label='Cross-Correlation')
-    plt.plot(peaks_indices, cross_correlation[peaks_indices], 'o', label='Top Peaks')
-    plt.xlabel('Lag')
+    plt.plot(time_values, cross_correlation, label='Cross-Correlation')
+    plt.plot(time_values[peaks_indices], cross_correlation[peaks_indices], 'o', label='Top Peaks')
+    plt.xlabel('Time (s)')
     plt.ylabel('Cross-Correlation')
     plt.title('Cross-Correlation between Session and Instruction')
     plt.legend()
     plt.grid(True)
     plt.savefig(file_path)
+    plt.close()
 
 def save_audacity_file(audacity_folder, session_file_path, instructions_timings):
     os.makedirs(audacity_folder, exist_ok=True)
@@ -134,15 +134,21 @@ def get_sessions(sessions_folder):
     session_file_paths = sorted([os.path.join(sessions_folder, session_filename) for session_filename in os.listdir(sessions_folder) if session_filename.endswith(".wav")])
     return session_file_paths
 
-def plot_cross_correlation(session_file_path, instruction_file_path, standardized_normalized_cross_corr, peaks_indices):
-    # TODO: PLOT CROSS CORRELATION WITH ABSOLUTE VALUES
-    os.makedirs(Config.cross_correlations_folder, exist_ok=True)
-    cross_correlations_session_folder = os.path.join(Config.cross_correlations_folder, os.path.basename(session_file_path)[:-4])
+def plot_cross_correlation(session_file_path, instruction_file_path, standardized_normalized_cross_corr, peaks_indices, cross_correlations_folder, sr, my_new_session_start):
+    """Generate plot for the cross-correlation showing actual session times."""
+    cross_correlations_session_folder = os.path.join(cross_correlations_folder, os.path.basename(session_file_path)[:-4])
     os.makedirs(cross_correlations_session_folder, exist_ok=True)
-    cross_correlation_figure_file_name = f"{os.path.basename(instruction_file_path)[:-4]}_{os.path.basename(session_file_path)[:-4]}"
-    save_cross_correlation(standardized_normalized_cross_corr, 
-                            peaks_indices, 
-                            os.path.join(cross_correlations_session_folder, f"{cross_correlation_figure_file_name}.png"))        
+    cross_correlation_figure_file_name = f"{os.path.basename(instruction_file_path)[:-4]}_{os.path.basename(session_file_path)[:-4]}.png"
+    
+    # Convert indices to actual time in the session
+    time_values = np.arange(len(standardized_normalized_cross_corr)) / sr + my_new_session_start / sr
+    
+    save_cross_correlation(
+        standardized_normalized_cross_corr,
+        peaks_indices,
+        time_values,
+        os.path.join(cross_correlations_session_folder, cross_correlation_figure_file_name)
+    )
 
 def get_peak_height(instruction_order):
     if instruction_order == 20:
