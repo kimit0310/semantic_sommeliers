@@ -16,6 +16,7 @@ import string
 import json
 import argparse
 import whisperx
+from datetime import datetime
 from config import Config
 from utility.utility import generate_json, preprocess_and_tokenize, load_audio, get_peak_height, get_session_timings, get_instructions, plot_cross_correlation, save_audacity_file, find_story_in_session, min_max_normalization
 
@@ -26,43 +27,46 @@ warnings.filterwarnings("ignore")
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(script_dir))
 
-# def parse_args():
-#     """ Parse command line arguments. """
-#     parser = argparse.ArgumentParser(description="Experiment script for session processing.")
-#     parser.add_argument("session_name", help="Name of the session")
-#     parser.add_argument("transcript_tool", help="Name of the transcript tool")
-#     args = parser.parse_args()
-#     return args
-
-# def setup_directories(transcript_tool):
-#     """ Setup directory paths based on the transcript tool. """
-#     audacity_folder = os.path.join(Config.data_folder, f"audacity_{transcript_tool}")
-#     transcriptions_folder = os.path.join(Config.data_folder, f"transcriptions_{transcript_tool}")
-#     similarity_folder = os.path.join(Config.data_folder, f"similarity_{transcript_tool}")
-#     return audacity_folder, transcriptions_folder, similarity_folder
-
 def parse_args():
     """ Parse command line arguments including hyperparameters. """
     parser = argparse.ArgumentParser(description="Experiment script for session processing.")
     parser.add_argument("session_name", help="Name of the session")
     parser.add_argument("transcript_tool", help="Name of the transcript tool")
     parser.add_argument("new_sample_rate", type=int, default=8000, help="New sample rate for audio processing")
-    parser.add_argument("highcut", type=int, default=3000, help="Highcut frequency for filtering")
-    parser.add_argument("lowcut", type=int, default=512, help="Lowcut frequency for filtering")
+    parser.add_argument("highcut", type=int, default=3500, help="Highcut frequency for filtering")
+    parser.add_argument("lowcut", type=int, default=500, help="Lowcut frequency for filtering")
+    parser.add_argument("normalization", type=bool, default=True, help="Enable or disable normalization")
+    parser.add_argument("filtering", type=bool, default=True, help="Enable or disable filtering")
+    parser.add_argument("seconds_threshold", type=float, default=3.0, help="Threshold in seconds for audio processing")
+    parser.add_argument("story_absolute_peak_height", type=float, default=0.65, help="Absolute peak height for story detection")
+    parser.add_argument("long_instructions_peak_height", type=float, default=0.6, help="Peak height for long instructions")
+    parser.add_argument("word_instructions_peak_height", type=float, default=0.8, help="Peak height for word instructions")
+    parser.add_argument("non_word_instructions_peak_height", type=float, default=0.8, help="Peak height for non-word instructions")
+    parser.add_argument("long_instructions_absolute_peak_height", type=float, default=0.01, help="Absolute peak height for long instructions")
+    parser.add_argument("word_instructions_absolute_peak_height", type=float, default=0.05, help="Absolute peak height for word instructions")
+    parser.add_argument("non_word_instructions_absolute_peak_height", type=float, default=0.05, help="Absolute peak height for non-word instructions")
     return parser.parse_args()
 
-def setup_directories(base_dir, new_sample_rate, highcut, lowcut):
-    """Set up directories and hyperparameters."""
-    data_folder = os.path.join(base_dir, f"nsr_{new_sample_rate}_hc_{highcut}_lc_{lowcut}")
+def setup_directories(base_dir, config):
+    """Set up directories based on the current date and time and save config to a JSON file."""
+    # Create a folder with the current date and time
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    data_folder = os.path.join(base_dir, f"data_run_{current_time}")
     audacity_folder = os.path.join(data_folder, "audacity")
     transcriptions_folder = os.path.join(data_folder, "transcriptions")
     similarity_folder = os.path.join(data_folder, "similarity")
     cross_correlations_folder = os.path.join(data_folder, "cross_correlation")
 
+    # Create directories
     os.makedirs(audacity_folder, exist_ok=True)
     os.makedirs(transcriptions_folder, exist_ok=True)
     os.makedirs(similarity_folder, exist_ok=True)
     os.makedirs(cross_correlations_folder, exist_ok=True)
+
+    # Save configuration to a JSON file within the data folder
+    config_path = os.path.join(data_folder, "config.json")
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
 
     return audacity_folder, transcriptions_folder, similarity_folder, cross_correlations_folder
 
@@ -135,7 +139,7 @@ def tokenize_session_data(session_word_by_word):
     session_tokens_flat = [item for sublist in session_tokens for item in sublist]
     return session_tokens_flat
 
-def find_stories_in_session(session_word_by_word, session_tokens_flat, similarity_folder, session_file_path, sr):
+def find_stories_in_session(session_word_by_word, session_tokens_flat, similarity_folder, session_file_path, sr, story_absolute_peak_height):
     """ Find and time stories within the session data without adjusting the waveform session. """
     story_timings = [None] * len(Config.stories)
     stories_starts = []
@@ -147,7 +151,7 @@ def find_stories_in_session(session_word_by_word, session_tokens_flat, similarit
         os.makedirs(similarity_session_folder, exist_ok=True)
         similarity_figure_file_name = f"story_{story_index}"
 
-        story_start = find_story_in_session(session_word_by_word, session_tokens_flat, story_tokens_flat, threshold=0.9,
+        story_start = find_story_in_session(session_word_by_word, session_tokens_flat, story_tokens_flat, story_absolute_peak_height,
                                            file_path=os.path.join(similarity_session_folder, f"{similarity_figure_file_name}.png"))
         if story_start is not None:
             story_timings[story_index] = {
@@ -221,8 +225,22 @@ def finalize_results(audacity_folder, session_file_path, story_timings, instruct
 
 def main():
     args = parse_args()
-    audacity_folder, transcriptions_folder, similarity_folder, cross_correlations_folder = setup_directories("data", args.new_sample_rate, args.highcut, args.lowcut)
-    
+    config = {
+        'new_sample_rate': args.new_sample_rate,
+        'highcut': args.highcut,
+        'lowcut': args.lowcut,
+        'normalization': args.normalization,
+        'filtering': args.filtering,
+        'seconds_threshold': args.seconds_threshold,
+        'story_absolute_peak_height': args.story_absolute_peak_height,
+        'long_instructions_peak_height': args.long_instructions_peak_height,
+        'word_instructions_peak_height': args.word_instructions_peak_height,
+        'non_word_instructions_peak_height': args.non_word_instructions_peak_height,
+        'long_instructions_absolute_peak_height': args.long_instructions_absolute_peak_height,
+        'word_instructions_absolute_peak_height': args.word_instructions_absolute_peak_height,
+        'non_word_instructions_absolute_peak_height': args.non_word_instructions_absolute_peak_height
+    }
+    audacity_folder, transcriptions_folder, similarity_folder, cross_correlations_folder = setup_directories("data", config)    
     print("Session Name:", args.session_name)
     session_file_path = os.path.join(Config.sessions_folder, args.session_name)
 
@@ -230,11 +248,8 @@ def main():
     session_word_by_word = process_transcripts(result)
     session_tokens_flat = tokenize_session_data(session_word_by_word)
 
-    waveform_session, sr, _ = load_audio(session_file_path, new_sample_rate=args.new_sample_rate, filtering=Config.filtering, lowcut=args.lowcut, highcut=args.highcut, normalization=Config.normalization)
-    story_timings, stories_starts = find_stories_in_session(session_word_by_word, session_tokens_flat, similarity_folder, session_file_path, sr)
-    if stories_starts:
-        min_stories_start = min(stories_starts)
-        waveform_session = waveform_session[:int(min_stories_start * sr)]
+    waveform_session, sr, _ = load_audio(session_file_path, new_sample_rate=args.new_sample_rate, filtering=args.filtering, lowcut=args.lowcut, highcut=args.highcut, normalization=args.normalization)
+    story_timings, stories_starts = find_stories_in_session(session_word_by_word, session_tokens_flat, similarity_folder, session_file_path, sr, args.story_absolute_peak_height)
     instruction_file_paths = get_instructions(Config.instructions_folder)
     instructions_timings = process_instruction_files(instruction_file_paths, waveform_session, sr, session_file_path, cross_correlations_folder)
     finalize_results(audacity_folder, session_file_path, story_timings, instructions_timings)

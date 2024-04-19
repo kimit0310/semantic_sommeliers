@@ -7,25 +7,17 @@ import torchaudio.transforms as T
 import pyloudnorm as pyln
 from scipy.signal import butter, lfilter
 import numpy as np
-from tqdm import tqdm
-import warnings
 from scipy.signal import find_peaks
-import torch
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-import string
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import json
 import math
-import argparse
-import whisperx
 import sys
+from config import Config
 
 # Assuming config.py is in the project's root directory, similar to experiments.py
 project_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root_dir)
 
-from config import Config
 
 def generate_json(input_json):
     segments = input_json["segments"]
@@ -242,10 +234,8 @@ def compute_cosine_similarity(embeddings1, embeddings2):
     cosine_sim = cosine_similarity(embeddings1.reshape(1, -1), embeddings2.reshape(1, -1))
     return np.mean(cosine_sim)
 
-def find_story_in_session(session_transcript, session_tokens, story_tokens, threshold=0.5, file_path=None):
+def find_story_in_session(session_transcript, session_tokens, story_tokens, story_absolute_peak_height=0.65, file_path=None):
     model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
-
-    # Search for Match and Track Timestamps
     times = [session_transcript[i]['start'] for i in range(len(session_tokens) - len(story_tokens) + 1) if i < len(session_transcript)]
     similarities = []
     for i, _ in enumerate(times):
@@ -255,47 +245,27 @@ def find_story_in_session(session_transcript, session_tokens, story_tokens, thre
         similarities.append(similarity)
 
     normalized_similarities = np.abs(similarities)
-    
-    # Check if the similarities array is empty before further processing
     if normalized_similarities.size == 0:
         print(f"Warning: No similarities found for session. Skipping {file_path}")
         return None
-    
-    min_max_normalized_similarities = min_max_normalization(normalized_similarities)
-    peaks_indices, _ = find_peaks(min_max_normalized_similarities, height=threshold, distance=len(story_tokens))
 
-    # Plotting
+    min_max_normalized_similarities = min_max_normalization(normalized_similarities)
+    peaks_indices, _ = find_peaks(min_max_normalized_similarities, height=story_absolute_peak_height, distance=len(story_tokens))
+
     plt.figure(figsize=(10, 6))
     plt.plot(times, similarities, label='Similarity')
     plt.xlabel('Time')
     plt.ylabel('Similarity')
     plt.title('Semantic Similarity Over Time')
-    plt.xticks(rotation=45) # Rotating x-axis labels for better readability
-
-    absolute_peak_height = Config.story_absolute_peak_height
-    print("max(normalized_similarities)")
-    print(max(normalized_similarities))
-    print("len(peaks_indices)")
-    print(len(peaks_indices))
-    
-
-    if len(peaks_indices) == 1:
-        if max(normalized_similarities) > absolute_peak_height: 
-            i = peaks_indices[0]
-            max_similarity = normalized_similarities[i]        
-            plt.scatter(times[i], max_similarity, color='red', zorder=5)
-
-    plt.tight_layout() # Adjust layout to not cut off labels
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.legend()
+# I get this for the instructions, but why for the story?
+    if len(peaks_indices) == 1 and max(normalized_similarities) > story_absolute_peak_height:
+        i = peaks_indices[0]
+        plt.scatter(times[i], normalized_similarities[i], color='red', zorder=5)
+        plt.savefig(file_path)
+        return times[i]
+
     plt.savefig(file_path)
-
-    if len(peaks_indices) == 1:
-        if max(normalized_similarities) > absolute_peak_height:
-            pass
-        else:
-            return None
-    else:
-        return None
-
-    start_time = session_transcript[i]['start']
-    return start_time
+    return None

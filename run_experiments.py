@@ -5,17 +5,15 @@ from tqdm import tqdm
 def run_experiment(session_file, transcript_tool, config):
     """
     Runs the experiments.py script with the given session file and transcript tool.
-    Config should be a tuple containing (new_sample_rate, highcut, lowcut).
+    Config should be a tuple containing parameters to be passed to the experiments script.
     """
-    new_sample_rate, highcut, lowcut = map(str, config)  # Convert all to string
+    config_params = map(str, config)  # Convert all config parameters to strings
     command = [
         'python',
         os.path.join(os.getcwd(), "experiments.py"),
         session_file,
         transcript_tool,
-        new_sample_rate,
-        highcut,
-        lowcut
+        *config_params  # Unpack all configuration parameters into the command
     ]
     subprocess.run(command, shell=False, check=True)
 
@@ -23,7 +21,11 @@ def main():
     sessions_dir = os.path.join(os.getcwd(), "data", "sessions")
     transcript_tool = "whisperx"  # Assuming you want to use 'whisperx' for all
     progress_file = "processed_sessions.txt"  # File to track processed sessions
-    config_set = [(8000, 3000, 512), (16000, 4000, 256)]  # Example configurations
+    # Define configurations including any additional parameters
+    config_set = [
+        (8000, 3500, 500, True, True, 3.0, 0.65, 0.6, 0.8, 0.8, 0.01, 0.05, 0.05),  # Standard parameters with highcut=3500
+        (8000, 3500, 500, True, True, 3.0, 0.65, 0.6, 0.8, 0.8, 0.01, 0.05, 0.04)  # Modified non_word_instructions_absolute_peak_height
+    ]
 
     # Load the set of already processed sessions
     if os.path.exists(progress_file):
