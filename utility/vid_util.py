@@ -3,6 +3,7 @@ import torchaudio
 import torch
 import os
 import glob
+import re
 from dotenv import load_dotenv
 import pyloudnorm as pyln
 import numpy as np
@@ -63,17 +64,17 @@ def load_audio_from_bytes(audio_bytes, format):
         
     return waveform, sample_rate
 
-def pre_process_audio_from_video(video_path, output_path):
-    """
-    Extracts audio from a video file, converts it to mono and 16kHz sample rate,
-    and saves it as a 16-bit WAV file.
-    """
-    audio_bytes = extract_audio_from_video(video_path)
-    waveform, sample_rate = load_audio_from_bytes(audio_bytes, 'wav')
-    waveform_mono = convert_stereo_to_mono(waveform)
-    waveform_resampled, new_sample_rate = resample_audio(waveform_mono, sample_rate)
-    normalized_waveform = normalize_loudness(waveform_resampled, new_sample_rate, target_loudness=-23)
-    save_audio(normalized_waveform, new_sample_rate, output_path)
+# def pre_process_audio_from_video(video_path, output_path):
+#     """
+#     Extracts audio from a video file, converts it to mono and 16kHz sample rate,
+#     and saves it as a 16-bit WAV file.
+#     """
+#     audio_bytes = extract_audio_from_video(video_path)
+#     waveform, sample_rate = load_audio_from_bytes(audio_bytes, 'wav')
+#     waveform_mono = convert_stereo_to_mono(waveform)
+#     waveform_resampled, new_sample_rate = resample_audio(waveform_mono, sample_rate)
+#     normalized_waveform = normalize_loudness(waveform_resampled, new_sample_rate, target_loudness=-23)
+#     save_audio(normalized_waveform, new_sample_rate, output_path)
 
 def normalize_loudness(audio, rate, target_loudness=-23):
     """
@@ -85,14 +86,24 @@ def normalize_loudness(audio, rate, target_loudness=-23):
     loudness_normalized_audio = pyln.normalize.loudness(np.array(audio.squeeze()), current_loudness, target_loudness)
     return torch.tensor(loudness_normalized_audio).unsqueeze(0)
 
+def natural_sort_key(s):
+    """
+    Obtain a tuple that represents the natural order sort key of the input string.
+    
+    Args:
+        s (str): The string to parse and turn into a sort key.
+    
+    Returns:
+        tuple: A tuple of mixed integer and string parts for sorting.
+    """
+    return [int(text) if text.isdigit() else text.lower() for text in re.split('([0-9]+)', s)]
+
+
 def list_files(folder_path, format):
-    # Build the path pattern to match all .mp4 files in the folder and subfolders
-    path_pattern = os.path.join(folder_path, '**', '*.{}'.format(format))
-    
-    # Use glob.glob with recursive=True to find all files matching the pattern in subfolders as well
-    mp4_files = glob.glob(path_pattern, recursive=True)
-    
-    return mp4_files
+    path_pattern = os.path.join(folder_path, '**', '*.' + format)
+    files = glob.glob(path_pattern, recursive=True)
+    files.sort(key=natural_sort_key)
+    return files  # Use natural sorting to maintain order
 
 def get_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
@@ -100,3 +111,17 @@ def get_device():
 def save_json(file, results):
     with open(file, 'w') as f:
         json.dump(results, f)
+
+def process_and_concatenate_videos(video_files, output_path, target_sample_rate=16000):
+    concatenated_waveform = []
+    for video_file in video_files:
+        audio_bytes = extract_audio_from_video(video_file)
+        waveform, sample_rate = load_audio_from_bytes(audio_bytes, 'wav')
+        waveform_mono = convert_stereo_to_mono(waveform)
+        if sample_rate != target_sample_rate:
+            resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=target_sample_rate)
+            waveform = resampler(waveform_mono)
+        concatenated_waveform.append(waveform)
+
+    concatenated_waveform = torch.cat(concatenated_waveform, dim=1)
+    save_audio(concatenated_waveform, target_sample_rate, output_path)
