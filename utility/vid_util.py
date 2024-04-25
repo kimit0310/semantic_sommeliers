@@ -4,14 +4,10 @@ import torch
 import os
 import glob
 import re
-from dotenv import load_dotenv
 import pyloudnorm as pyln
 import numpy as np
 import json
 import tempfile
-
-def prepare_env():
-    load_dotenv()
 
 def extract_audio_from_video(video_path):
     """
@@ -63,18 +59,6 @@ def load_audio_from_bytes(audio_bytes, format):
         waveform, sample_rate = torchaudio.load(temp_audio_file.name, format=format)
         
     return waveform, sample_rate
-
-# def pre_process_audio_from_video(video_path, output_path):
-#     """
-#     Extracts audio from a video file, converts it to mono and 16kHz sample rate,
-#     and saves it as a 16-bit WAV file.
-#     """
-#     audio_bytes = extract_audio_from_video(video_path)
-#     waveform, sample_rate = load_audio_from_bytes(audio_bytes, 'wav')
-#     waveform_mono = convert_stereo_to_mono(waveform)
-#     waveform_resampled, new_sample_rate = resample_audio(waveform_mono, sample_rate)
-#     normalized_waveform = normalize_loudness(waveform_resampled, new_sample_rate, target_loudness=-23)
-#     save_audio(normalized_waveform, new_sample_rate, output_path)
 
 def normalize_loudness(audio, rate, target_loudness=-23):
     """
