@@ -4,8 +4,8 @@ from tqdm import tqdm
 
 def __main__():
     video_format = 'MXF'
-    visual_stimuli_folder = '/Users/iktae.kim/semantic_sommeliers/data/video_transform'
-    local_output_folder = '/Users/iktae.kim/semantic_sommeliers/data/sessions_2'
+    visual_stimuli_folder = '/Users/iktae.kim/Desktop/later half'
+    local_output_folder = '/Users/iktae.kim/Desktop/16k'
     audio_format = 'wav'
     target_sample_rate = 16000
 

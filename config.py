@@ -12,9 +12,9 @@ class Config:
     ############## PARAMS ##############
     normalization = True
     filtering = True
-    new_sample_rate = 8000
-    lowcut = 512.0
-    highcut = 3000.0
+    new_sample_rate = 16000
+    lowcut = 500.0
+    highcut = 7500.0
     seconds_threshold = 3.0
     story_absolute_peak_height = 0.65
     long_instructions_peak_height = 0.6
