@@ -29,17 +29,15 @@ def main():
         (16000, 7500, 1000, True, True, 3.0, 0.65, 0.6, 0.8, 0.8, 0.01, 0.05, 0.04),
     ]
 
-
     session_files = [f for f in os.listdir(sessions_dir) if f.endswith(".wav")]
 
     for config in config_set:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        for filename in tqdm(
-            session_files, desc=f"Processing sessions for config {config}"
-        ):
+        for filename in tqdm(session_files):
             session_file = os.path.join(sessions_dir, filename)
 
             run_experiment(session_file, transcript_tool, config, timestamp)
+
 
 if __name__ == "__main__":
     main()

@@ -388,8 +388,8 @@ def find_story_in_session(
     plt.legend()
     # I get this for the instructions, but why for the story? for the moment, take max
     if (
-        len(peaks_indices) == 1
-        and max(normalized_similarities) > story_absolute_peak_height
+        # len(peaks_indices) == 1
+        max(normalized_similarities) > story_absolute_peak_height
     ):
         i = peaks_indices[0]
         plt.scatter(times[i], normalized_similarities[i], color="red", zorder=5)
@@ -535,33 +535,45 @@ def setup_directories(base_dir, config, timestamp):
     )
 
 
-def load_or_transcribe_audio(session_file_path, transcript_tool, transcriptions_folder):
-    """Load or transcribe audio based on the availability of a transcription."""
+def load_or_transcribe_audio(
+    session_file_path,
+    waveform,
+    sample_rate,
+    transcript_tool,
+    transcriptions_folder,
+    last_instruction_time,
+):
+    """Load or transcribe audio based on the necessity of transcription."""
     session_transcript_file = os.path.join(
         transcriptions_folder, f"{os.path.basename(session_file_path)[:-4]}.json"
     )
-    if os.path.exists(session_transcript_file):
-        with open(session_transcript_file, "r", encoding="utf-8") as f:
-            result = json.load(f)
-    else:
-        result = transcribe_audio(session_file_path, transcript_tool)
-        os.makedirs(transcriptions_folder, exist_ok=True)
+    if not os.path.exists(session_transcript_file):
+        # Calculate the starting sample for transcription based on the last instruction's timing
+        start_sample = int(last_instruction_time * sample_rate)
+        relevant_waveform = waveform[
+            start_sample:
+        ]  # Slice the waveform from last instruction end, assuming mono
+
+        # Choose the transcription method based on the tool specified
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if transcript_tool == "whisper":
+            result = transcribe_with_whisper(relevant_waveform, device)
+        else:
+            result = transcribe_with_whisperx(relevant_waveform, device)
+
+        # Save transcription result
         with open(session_transcript_file, "w", encoding="utf-8") as f:
             json.dump(result, f)
+
+    else:
+        with open(session_transcript_file, "r", encoding="utf-8") as f:
+            result = json.load(f)
+
     return result
 
 
-def transcribe_audio(session_file_path, transcript_tool):
-    """Transcribe audio using Whisper or WhisperX based on the transcript tool specified."""
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    if transcript_tool == "whisper":
-        return transcribe_with_whisper(session_file_path, device)
-    else:
-        return transcribe_with_whisperx(session_file_path, device)
-
-
-def transcribe_with_whisper(session_file_path, device):
-    """Use Whisper for transcription."""
+def transcribe_with_whisper(waveform, device):
+    """Transcribe a given waveform using Whisper."""
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = "openai/whisper-large-v3"
     pipe = pipeline(
@@ -574,26 +586,32 @@ def transcribe_with_whisper(session_file_path, device):
         torch_dtype=torch_dtype,
         device=device,
     )
-    waveform, _ = torchaudio.load(session_file_path)
     result = pipe(waveform.numpy(), generate_kwargs={"language": "english"})
     return result
 
 
-def transcribe_with_whisperx(session_file_path, device):
-    """Use WhisperX for transcription and format output."""
+def transcribe_with_whisperx(waveform, device):
+    """Transcribe a given waveform using WhisperX and format the output."""
     whisperx_model = whisperx.load_model(
         "tiny", device, compute_type="int8", language="en"
     )
-    audio = whisperx.load_audio(session_file_path)
-    result = whisperx_model.transcribe(audio, language="en", batch_size=16)
-    model_a, metadata = whisperx.load_align_model(
-        language_code=result["language"], device=device
-    )
+
+    # Convert waveform to NumPy array if it's a PyTorch tensor
+    if isinstance(waveform, torch.Tensor):
+        waveform = waveform.numpy()
+
+    # Ensure the waveform is in float32 format, normalized if necessary
+    if waveform.dtype != np.float32:
+        waveform = waveform.astype(np.float32) / np.max(np.abs(waveform))
+
+    # Transcribe using WhisperX with the prepared waveform
+    result = whisperx_model.transcribe(waveform, language="en", batch_size=16)
+    model_a, metadata = whisperx.load_align_model(language_code="en", device=device)
     aligned_result = whisperx.align(
         result["segments"],
         model_a,
         metadata,
-        audio,
+        waveform,
         device,
         return_char_alignments=False,
     )
@@ -682,8 +700,8 @@ def process_instruction_files(
 ):
     """Process instruction files and align them with session data, using the specified correlations folder for plots."""
     instructions_timings = [None] * len(instruction_file_paths)
-    for instruction_file_path in tqdm(instruction_file_paths, desc="Instruction files"):
-        tqdm.write(f"Processing {instruction_file_path}")
+    for instruction_file_path in tqdm(instruction_file_paths, desc="Instructions"):
+        # tqdm.write(f"Processing {instruction_file_path}")
         waveform_instruction, sr, instruction_duration = load_audio(
             instruction_file_path,
             new_sample_rate=Config.new_sample_rate,
@@ -718,7 +736,6 @@ def process_instruction_files(
             instruction_file_path,
         )
 
-        # Now with updated time conversion
         plot_cross_correlation(
             session_file_path,
             instruction_file_path,
