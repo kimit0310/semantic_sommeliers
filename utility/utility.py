@@ -17,7 +17,7 @@ from config import Config
 from scipy.signal import butter, correlate, find_peaks, lfilter
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from transformers import pipeline
+from transformers import pipeline, WhisperTimeStampLogitsProcessor
 
 # Assuming config.py is in the project's root directory, similar to experiments.py
 project_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -576,12 +576,14 @@ def transcribe_with_whisper(waveform, device):
     """Transcribe a given waveform using Whisper."""
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = "openai/whisper-large-v3"
+    processor = WhisperTimeStampLogitsProcessor.from_pretrained(model_id)
     pipe = pipeline(
         "automatic-speech-recognition",
         model=model_id,
+        processor=processor,
         max_new_tokens=128,
         chunk_length_s=30,
-        batch_size=16,
+        batch_size=8,
         return_timestamps="word",
         torch_dtype=torch_dtype,
         device=device,
@@ -593,12 +595,18 @@ def transcribe_with_whisper(waveform, device):
 def transcribe_with_whisperx(waveform, device):
     """Transcribe a given waveform using WhisperX and format the output."""
     whisperx_model = whisperx.load_model(
-        "tiny", device, compute_type="int8", language="en"
+        "large", device, compute_type="int8", language="en"
     )
 
     # Convert waveform to NumPy array if it's a PyTorch tensor
     if isinstance(waveform, torch.Tensor):
         waveform = waveform.numpy()
+
+    # Check if the waveform is empty and return early if it is
+    if waveform.size == 0:
+        print("Warning: Received empty waveform for transcription.")
+        return {}  # Return an empty dict or appropriate error signal
+
 
     # Ensure the waveform is in float32 format, normalized if necessary
     if waveform.dtype != np.float32:
