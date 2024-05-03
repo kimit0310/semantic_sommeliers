@@ -6,7 +6,7 @@ import os
 import sys
 import warnings
 from config import Config
-from utility.utility import (
+from qa_utilities import (
     get_instructions,
     load_audio,
     setup_directories,
