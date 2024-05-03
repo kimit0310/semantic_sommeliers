@@ -45,7 +45,7 @@ def main():
         "non_word_instructions_absolute_peak_height": args.non_word_instructions_absolute_peak_height,
     }
     (
-        audacity_folder,
+        labels_folder,
         transcriptions_folder,
         similarity_folder,
         cross_correlations_folder,
@@ -107,7 +107,7 @@ def main():
     ]
 
     finalize_results(
-        audacity_folder, session_file_path, adjusted_story_timings, instructions_timings
+        labels_folder, session_file_path, adjusted_story_timings, instructions_timings
     )
 
 

@@ -12,7 +12,7 @@ def run_experiment(session_file, transcript_tool, config, timestamp):
     config_params = map(str, config)  # Convert all config parameters to strings
     command = [
         "python",
-        os.path.join(os.getcwd(), "experiments.py"),
+        os.path.join(os.getcwd(), "main.py"),
         session_file,
         transcript_tool,
         *config_params,  # Unpack all configuration parameters into the command

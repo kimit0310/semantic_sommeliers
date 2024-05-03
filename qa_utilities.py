@@ -129,12 +129,10 @@ def save_cross_correlation(cross_correlation, peaks_indices, time_values, file_p
     plt.close()
 
 
-def save_audacity_file(audacity_folder, session_file_path, instructions_timings):
-    os.makedirs(audacity_folder, exist_ok=True)
+def save_labels_file(labels_folder, session_file_path, instructions_timings):
+    os.makedirs(labels_folder, exist_ok=True)
     with open(
-        os.path.join(
-            audacity_folder, os.path.basename(session_file_path)[:-4] + ".txt"
-        ),
+        os.path.join(labels_folder, os.path.basename(session_file_path)[:-4] + ".txt"),
         "w",
         encoding="utf-8",
     ) as file:
@@ -511,13 +509,13 @@ def setup_directories(base_dir, config, timestamp):
     """Set up directories for the current run, creating unique folders based on the timestamp."""
     data_folder = os.path.join(base_dir, f"data_run_{timestamp}")
 
-    audacity_folder = os.path.join(data_folder, "audacity")
+    labels_folder = os.path.join(data_folder, "labels")
     transcriptions_folder = os.path.join(data_folder, "transcriptions")
     similarity_folder = os.path.join(data_folder, "similarity")
     cross_correlations_folder = os.path.join(data_folder, "cross_correlation")
 
     # Create directories
-    os.makedirs(audacity_folder, exist_ok=True)
+    os.makedirs(labels_folder, exist_ok=True)
     os.makedirs(transcriptions_folder, exist_ok=True)
     os.makedirs(similarity_folder, exist_ok=True)
     os.makedirs(cross_correlations_folder, exist_ok=True)
@@ -528,7 +526,7 @@ def setup_directories(base_dir, config, timestamp):
         json.dump(config, f, indent=4)
 
     return (
-        audacity_folder,
+        labels_folder,
         transcriptions_folder,
         similarity_folder,
         cross_correlations_folder,
@@ -606,7 +604,6 @@ def transcribe_with_whisperx(waveform, device):
     if waveform.size == 0:
         print("Warning: Received empty waveform for transcription.")
         return {}  # Return an empty dict or appropriate error signal
-
 
     # Ensure the waveform is in float32 format, normalized if necessary
     if waveform.dtype != np.float32:
@@ -804,8 +801,8 @@ def update_instruction_timings(
 
 
 def finalize_results(
-    audacity_folder, session_file_path, story_timings, instructions_timings
+    labels_folder, session_file_path, story_timings, instructions_timings
 ):
-    """Save the final timings to an Audacity label file."""
+    """Save the final timings to an labels file."""
     all_timings = instructions_timings + story_timings
-    save_audacity_file(audacity_folder, session_file_path, all_timings)
+    save_labels_file(labels_folder, session_file_path, all_timings)
