@@ -1,23 +1,27 @@
 # Imports
+import argparse
 import json
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import string
-import pyloudnorm as pyln
 import sys
-import argparse
-import whisperx
-from tqdm import tqdm
+import csv
+import glob
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pyloudnorm as pyln
 import torch
 import torchaudio
 import torchaudio.transforms as T
-from config import Config
+import whisperx
 from scipy.signal import butter, correlate, find_peaks, lfilter
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from transformers import pipeline, WhisperTimeStampLogitsProcessor
+from tqdm import tqdm
+from transformers import WhisperTimeStampLogitsProcessor, pipeline
+
+from config import Config
 
 # Assuming config.py is in the project's root directory, similar to experiments.py
 project_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -806,3 +810,67 @@ def finalize_results(
     """Save the final timings to an labels file."""
     all_timings = instructions_timings + story_timings
     save_labels_file(labels_folder, session_file_path, all_timings)
+
+
+def summarize_results(labels_folder):
+    # This dictionary will store the session summary
+    session_summaries = []
+
+    # List all text files in the labels directory
+    label_files = glob.glob(os.path.join(labels_folder, "*.txt"))
+
+    # Define all possible audio instructions (00 to 37)
+    total_audio_instructions = [f"{i:02d}" for i in range(38)]
+    total_stories = ["story_0", "story_1"]
+
+    # Iterate over each file
+    for file_path in label_files:
+        session_name = os.path.basename(file_path).replace(".txt", "")
+        detected_audio = set()
+        detected_stories = set()
+
+        with open(file_path, "r") as file:
+            for line in file:
+                parts = line.strip().split("\t")
+                if len(parts) < 3:
+                    continue
+                label = parts[2]
+
+                if label in total_stories:
+                    detected_stories.add(label)
+                elif "_" in label:
+                    audio_index = label.split("_")[0]
+                    detected_audio.add(audio_index)
+
+        # Determine missing audio instructions and stories
+        missed_audio = sorted(
+            set(total_audio_instructions) - detected_audio, key=lambda x: int(x)
+        )
+        missed_stories = sorted(set(total_stories) - detected_stories)
+
+        # Store results in the dictionary
+        session_summaries.append(
+            {
+                "Session": session_name,
+                "Total Audio Instructions Detected": len(detected_audio),
+                "Total Stories Detected": len(detected_stories),
+                "Missed Audio Instructions": ", ".join(missed_audio),
+                "Missed Stories": ", ".join(missed_stories),
+            }
+        )
+
+    # Output the summary to a CSV file
+    csv_file_path = os.path.join(labels_folder, "summary_report.csv")
+    with open(csv_file_path, "w", newline='') as csvfile:
+        fieldnames = [
+            "Session",
+            "Total Audio Instructions Detected",
+            "Total Stories Detected",
+            "Missed Audio Instructions",
+            "Missed Stories",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for summary in session_summaries:
+            writer.writerow(summary)

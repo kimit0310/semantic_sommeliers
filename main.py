@@ -17,6 +17,7 @@ from qa_utilities import (
     process_instruction_files,
     process_transcripts,
     tokenize_session_data,
+    summarize_results
 )
 
 # Suppress warnings
@@ -109,6 +110,8 @@ def main():
     finalize_results(
         labels_folder, session_file_path, adjusted_story_timings, instructions_timings
     )
+    
+    summarize_results(labels_folder)
 
 
 if __name__ == "__main__":
