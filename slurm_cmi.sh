@@ -2,10 +2,12 @@
 
 #SBATCH --job-name=mobi_hbn_video_qa_run
 #SBATCH --output=mobi_hbn_video_qa_run%j.out
-#SBATCH --ntasks=3
-#SBATCH --cpus-per-task=10
-#SBATCH --mem=96G
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=40G
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
+#SBATCH --time=6-23:59:00
 
 # Define variables for paths
 CONDA_DIR="/home/$USER/miniconda"
@@ -26,33 +28,34 @@ export PATH="$FFMPEG_DIR:$PATH"
 # Navigate to the project directory
 cd /home/$USER/semantic_sommeliers
 
-# Split audio files into three groups
+# Split audio files into two groups
 audio_folder="/data3/mobi/hbn_video_qa/extracted_audio"
 audio_files=($(ls ${audio_folder}/*.wav))
 total_files=${#audio_files[@]}
-group_size=$((total_files / 3))
-remainder=$((total_files % 3))
+group_size=$((total_files / 2))
+remainder=$((total_files % 2))
 
 # First group
 group1_files=("${audio_files[@]:0:${group_size}}")
 group1_list="group1_list.txt"
-printf "%s\n" "${group1_files[@]}" > ${group1_list}
+for file in "${group1_files[@]}"; do
+    echo "$(basename "$file")" >> ${group1_list}
+done
 
 # Second group
-group2_files=("${audio_files[@]:${group_size}:${group_size}}")
+start_index=$group_size
+end_index=$((start_index + group_size + remainder))
+group2_files=("${audio_files[@]:${start_index}}")
 group2_list="group2_list.txt"
-printf "%s\n" "${group2_files[@]}" > ${group2_list}
-
-# Third group
-group3_files=("${audio_files[@]:$((2 * group_size)):${group_size + remainder}}")
-group3_list="group3_list.txt"
-printf "%s\n" "${group3_files[@]}" > ${group3_list}
+for file in "${group2_files[@]}"; do
+    echo "$(basename "$file")" >> ${group2_list}
+done
 
 # Run batch processes in parallel
-srun -N1 -n1 python batch_run.py --audio_list ${group1_list} &
-srun -N1 -n1 python batch_run.py --audio_list ${group2_list} &
-srun -N1 -n1 python batch_run.py --audio_list ${group3_list} &
+srun --exclusive -N1 -n1 python batch_run.py --audio_list ${group1_list} &
+srun --exclusive -N1 -n1 python batch_run.py --audio_list ${group2_list} &
 
 wait
 
+# Deactivate the environment at the end of the script
 conda deactivate

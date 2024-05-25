@@ -18,7 +18,6 @@ import whisperx
 from scipy.signal import butter, correlate, find_peaks, lfilter
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from tqdm import tqdm
 from transformers import WhisperTimeStampLogitsProcessor, pipeline
 
 from config import Config
@@ -669,7 +668,7 @@ def find_stories_in_session(
     """Find and time stories within the session data without adjusting the waveform session."""
     story_timings = [None] * len(Config.stories)
     stories_starts = []
-    for story_index, story in tqdm(enumerate(Config.stories), desc="Stories"):
+    for story_index, story in enumerate(Config.stories):
         story_tokens = [preprocess_and_tokenize(item) for item in story.split(" ")]
         story_tokens_flat = [item for sublist in story_tokens for item in sublist]
 
@@ -709,8 +708,7 @@ def process_instruction_files(
 ):
     """Process instruction files and align them with session data, using the specified correlations folder for plots."""
     instructions_timings = [None] * len(instruction_file_paths)
-    for instruction_file_path in tqdm(instruction_file_paths, desc="Instructions"):
-        # tqdm.write(f"Processing {instruction_file_path}")
+    for instruction_file_path in instruction_file_paths:
         waveform_instruction, sr, instruction_duration = load_audio(
             instruction_file_path,
             new_sample_rate=Config.new_sample_rate,

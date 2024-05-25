@@ -31,7 +31,7 @@ def main():
 
     for config in config_set:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        for session_file in tqdm(session_files):
+        for session_file in tqdm(session_files, desc="Processing Files"):
             run_experiment(session_file, transcript_tool, config, timestamp)
 
 if __name__ == "__main__":
