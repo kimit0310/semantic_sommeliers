@@ -52,8 +52,8 @@ for file in "${group2_files[@]}"; do
 done
 
 # Run batch processes in parallel
-srun --exclusive -N1 -n1 python batch_run.py --audio_list ${group1_list} &
-srun --exclusive -N1 -n1 python batch_run.py --audio_list ${group2_list} &
+srun --exclusive -N1 -n1 --gres=gpu:1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group1_list} &
+srun --exclusive -N1 -n1 --gres=gpu:1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group2_list} &
 
 wait
 
