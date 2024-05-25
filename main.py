@@ -4,9 +4,6 @@
 # Imports
 import os
 import sys
-import logging
-import warnings
-import pytorch_lightning as pl
 from config import Config
 from qa_utilities import (
     get_instructions,
@@ -21,13 +18,6 @@ from qa_utilities import (
     tokenize_session_data,
     summarize_results
 )
-# Suppress warnings
-warnings.filterwarnings("ignore", category=UserWarning, module='pytorch_lightning')
-warnings.filterwarnings("ignore", category=UserWarning, module='pyannote')
-warnings.filterwarnings("ignore", category=UserWarning, module='torch')
-logging.getLogger("torch").setLevel(logging.ERROR)
-pl.utilities.rank_zero_only.rank_zero_warn = lambda *args, **kwargs: None
-
 # Setup environment
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(script_dir))

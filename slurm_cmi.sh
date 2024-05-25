@@ -4,8 +4,8 @@
 #SBATCH --output=mobi_hbn_video_qa_run%j.out
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=40G
-#SBATCH --gres=gpu:1
+#SBATCH --mem=80G
+#SBATCH --gpus-per-task=1
 #SBATCH --nodes=1
 #SBATCH --time=6-23:59:00
 
@@ -52,8 +52,8 @@ for file in "${group2_files[@]}"; do
 done
 
 # Run batch processes in parallel
-srun --exclusive -N1 -n1 --gres=gpu:1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group1_list} &
-srun --exclusive -N1 -n1 --gres=gpu:1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group2_list} &
+srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group1_list} &
+srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group2_list} &
 
 wait
 

@@ -2,7 +2,15 @@ from datetime import datetime
 import os
 import subprocess
 import argparse
+import warnings
+import logging
 from tqdm import tqdm
+
+# Suppress warnings
+warnings.filterwarnings("ignore", category=UserWarning, module='pytorch_lightning')
+warnings.filterwarnings("ignore", category=UserWarning, module='pyannote')
+warnings.filterwarnings("ignore", category=UserWarning, module='torch')
+logging.getLogger("torch").setLevel(logging.ERROR)
 
 def run_experiment(session_file, transcript_tool, config, timestamp):
     config_params = map(str, config)

@@ -25,12 +25,6 @@ from transformers import WhisperTimeStampLogitsProcessor, pipeline
 
 from config import Config
 
-# Suppress warnings
-warnings.filterwarnings("ignore", category=UserWarning, module='pytorch_lightning')
-warnings.filterwarnings("ignore", category=UserWarning, module='pyannote')
-warnings.filterwarnings("ignore", category=UserWarning, module='torch')
-logging.getLogger("torch").setLevel(logging.ERROR)
-pl.utilities.rank_zero_only.rank_zero_warn = lambda *args, **kwargs: None
 
 # Assuming config.py is in the project's root directory, similar to experiments.py
 project_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
