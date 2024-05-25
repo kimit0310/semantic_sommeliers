@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='torch')
 logging.getLogger("torch").setLevel(logging.ERROR)
 pl.utilities.rank_zero_only.rank_zero_warn = lambda *args, **kwargs: None
 
-def run_experiment(session_file, transcript_tool, config, timestamp):
+def run_experiment(session_file, transcript_tool, config, timestamp, error_log_path):
     config_params = map(str, config)
     command = [
         "python",
@@ -24,11 +24,16 @@ def run_experiment(session_file, transcript_tool, config, timestamp):
         *config_params,
         timestamp,
     ]
-    subprocess.run(command, shell=False, check=True)
+    try:
+        subprocess.run(command, shell=False, check=True)
+    except subprocess.CalledProcessError as e:
+        with open(error_log_path, "a") as error_log:
+            error_log.write(f"Error processing {session_file}: {e}\n")
 
 def main():
     parser = argparse.ArgumentParser(description="Batch Run Script")
     parser.add_argument("--audio_list", type=str, required=True, help="Path to the list of audio files")
+    parser.add_argument("--error_log", type=str, default="error_log.txt", help="Path to the error log file")
     args = parser.parse_args()
 
     with open(args.audio_list, "r") as f:
@@ -42,7 +47,7 @@ def main():
     for config in config_set:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         for session_file in tqdm(session_files, desc="Processing Files"):
-            run_experiment(session_file, transcript_tool, config, timestamp)
+            run_experiment(session_file, transcript_tool, config, timestamp, args.error_log)
 
 if __name__ == "__main__":
     main()
