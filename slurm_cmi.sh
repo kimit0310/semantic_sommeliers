@@ -7,7 +7,7 @@
 #SBATCH --mem=80G
 #SBATCH --gpus-per-task=1
 #SBATCH --nodes=1
-#SBATCH --time=6-23:59:00
+#SBATCH --time=3-00:00:00
 
 # Define variables for paths
 CONDA_DIR="/home/$USER/miniconda"
@@ -28,32 +28,9 @@ export PATH="$FFMPEG_DIR:$PATH"
 # Navigate to the project directory
 cd /home/$USER/semantic_sommeliers
 
-# Split audio files into two groups
-audio_folder="/data3/mobi/hbn_video_qa/extracted_audio"
-audio_files=($(ls ${audio_folder}/*.wav))
-total_files=${#audio_files[@]}
-group_size=$((total_files / 2))
-remainder=$((total_files % 2))
-
-# First group
-group1_files=("${audio_files[@]:0:${group_size}}")
-group1_list="group1_list.txt"
-for file in "${group1_files[@]}"; do
-    echo "$(basename "$file")" >> ${group1_list}
-done
-
-# Second group
-start_index=$group_size
-end_index=$((start_index + group_size + remainder))
-group2_files=("${audio_files[@]:${start_index}}")
-group2_list="group2_list.txt"
-for file in "${group2_files[@]}"; do
-    echo "$(basename "$file")" >> ${group2_list}
-done
-
 # Run batch processes in parallel
-srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group1_list} &
-srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list ${group2_list} &
+srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list new_group1_list.txt --error_log error_log_part1.txt &
+srun --exclusive -N1 -n1 --gpus-per-task=1 --cpus-per-task=16 --mem=40G python batch_run.py --audio_list new_group2_list.txt --error_log error_log_part2.txt &
 
 wait
 

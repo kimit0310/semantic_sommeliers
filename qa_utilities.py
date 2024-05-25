@@ -379,7 +379,6 @@ def find_story_in_session(
 
     normalized_similarities = np.abs(similarities)
     if normalized_similarities.size == 0:
-        # print(f"Warning: No similarities found for session. Skipping {file_path}")
         return None
 
     min_max_normalized_similarities = min_max_normalization(normalized_similarities)
@@ -397,11 +396,8 @@ def find_story_in_session(
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.legend()
-    # I get this for the instructions, but why for the story? for the moment, take max
-    if (
-        # len(peaks_indices) == 1
-        max(normalized_similarities) > story_absolute_peak_height
-    ):
+    
+    if len(peaks_indices) > 0 and max(normalized_similarities) > story_absolute_peak_height:
         i = peaks_indices[0]
         plt.scatter(times[i], normalized_similarities[i], color="red", zorder=5)
         plt.savefig(file_path)
