@@ -55,7 +55,7 @@ def main():
         transcriptions_folder,
         similarity_folder,
         cross_correlations_folder,
-    ) = setup_directories("data", config, args.timestamp)
+    ) = setup_directories("data3/mobi/hbn_video_qa/qa_data", config, args.timestamp)
 
     # print("Session Name:", args.session_name)
     session_file_path = os.path.join(Config.sessions_folder, args.session_name)
