@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import warnings
 import logging
+import pytorch_lightning as pl
 from tqdm import tqdm
 
 # Suppress warnings
@@ -11,6 +12,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='pytorch_lightnin
 warnings.filterwarnings("ignore", category=UserWarning, module='pyannote')
 warnings.filterwarnings("ignore", category=UserWarning, module='torch')
 logging.getLogger("torch").setLevel(logging.ERROR)
+pl.utilities.rank_zero_only.rank_zero_warn = lambda *args, **kwargs: None
 
 def run_experiment(session_file, transcript_tool, config, timestamp):
     config_params = map(str, config)
