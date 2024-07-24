@@ -1,8 +1,7 @@
 data/
-.ipynb_checkpoints/
 .DS_Store
-processed_sessions.txt
 profile_output.prof
 __pycache__/
 Untitled-1.ipynb
-packages.py
+.venv/
+.vscode/

@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "semantic-sommeliers"
+version = "0.1.0"
+description = "Semantic Sommeliers is an advanced audio processing system designed to handle complex tasks such as transcription, story detection, and instruction alignment within audio files. Utilizing models like Whisper and WhisperX, the system can transcribe audio, identify stories, and synchronize instructions with the session data effectively."
+authors = ["kimit0310 <kimit0310@gmail.com>"]
+license = "LGPL-2.1"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pyloudnorm = "0.1.1"
+pyannote-audio = "1.1.1"
+ffmpeg-python = "0.2.0"
+matplotlib = "3.7.2"
+tqdm = "4.65.0"
+transformers = "4.43.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
