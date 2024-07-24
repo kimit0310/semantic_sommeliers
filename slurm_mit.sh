@@ -16,16 +16,9 @@ module load openmind/ffmpeg/20160310
 eval "$(conda shell.bash hook)"
 conda activate cmi
 
-python experiments.py 5023141_speech_language_non.wav whisperx
-python experiments.py 5030023_speech_language_non.wav whisperx
-python experiments.py 5031633_speech_language.wav whisperx
-python experiments.py 5156180_speech_language.wav whisperx
-python experiments.py 5195387_speech_language_non.wav whisperx
-python experiments.py 5253316_speech_language.wav whisperx
-python experiments.py 5270706_speech_language.wav whisperx
-python experiments.py 5282397_speech_language_non.wav whisperx
-python experiments.py 5334942_speech_languageB.wav whisperx
-python experiments.py 5413094_speech_language.wav whisperx
+python experiments.py session1.wav whisperx
+python experiments.py session2.wav whisperx
+python experiments.py session3.wav whisperx
 """
 
 #!/bin/bash       

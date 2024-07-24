@@ -7,8 +7,8 @@ import os
 import sys
 import warnings
 import pytorch_lightning as pl
-from config import Config
-from qa_utilities import (
+from src.config import Config
+from utils.qa_utilities import (
     get_instructions,
     load_audio,
     setup_directories,
