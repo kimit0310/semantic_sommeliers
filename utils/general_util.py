@@ -9,36 +9,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from src.config import Config
 
-def generate_json(input_json: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Generates a JSON object with concatenated text and timestamps from input JSON.
-
-    Args:
-        input_json (dict): The input JSON object containing segments and words.
-
-    Returns:
-        dict: A JSON object containing concatenated text and word chunks with timestamps.
-    """
-    segments = input_json["segments"]
-    concatenated_text = ""
-    chunks = []
-
-    for segment in segments:
-        for word_info in segment["words"]:
-            concatenated_text += word_info["word"] + " "
-            start = word_info.get("start")
-            end = word_info.get("end")
-            if start is not None and end is not None:
-                chunks.append({"text": word_info["word"], "timestamp": [start, end]})
-            else:
-                print(f"Warning: Missing timestamp for word '{word_info['word']}'")
-
-    concatenated_text = concatenated_text.strip()
-
-    output_json = {"text": concatenated_text, "chunks": chunks}
-
-    return output_json
-
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments including hyperparameters with defaults from Config.
@@ -172,8 +142,8 @@ def setup_directories(base_dir: str, config: Config, timestamp: str) -> Tuple[st
     os.makedirs(cross_correlations_folder, exist_ok=True)
 
     config_path = os.path.join(data_folder, "config.json")
-    with open(config_path, "w") as f:
-        json.dump(config, f, indent=4)
+    with open(config_path, "w", encoding="utf-8") as file:
+        json.dump(config, file, indent=4)
 
     return (
         labels_folder,
@@ -182,7 +152,41 @@ def setup_directories(base_dir: str, config: Config, timestamp: str) -> Tuple[st
         cross_correlations_folder,
     )
 
-def save_labels_file(labels_folder: str, session_file_path: str, instructions_timings: List[Dict[str, Any]]) -> None:
+def generate_json(input_json: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generates a JSON object with concatenated text and timestamps from input JSON.
+
+    Args:
+        input_json (dict): The input JSON object containing segments and words.
+
+    Returns:
+        dict: A JSON object containing concatenated text and word chunks with timestamps.
+    """
+    segments = input_json["segments"]
+    concatenated_text = ""
+    chunks = []
+
+    for segment in segments:
+        for word_info in segment["words"]:
+            concatenated_text += word_info["word"] + " "
+            start = word_info.get("start")
+            end = word_info.get("end")
+            if start is not None and end is not None:
+                chunks.append({"text": word_info["word"], "timestamp": [start, end]})
+            else:
+                print(f"Warning: Missing timestamp for word '{word_info['word']}'")
+
+    concatenated_text = concatenated_text.strip()
+
+    output_json = {"text": concatenated_text, "chunks": chunks}
+
+    return output_json
+
+def save_labels_file(
+    labels_folder: str,
+    session_file_path: str,
+    instructions_timings: List[Dict[str, Any]]
+) -> None:
     """
     Save the instructions timings to a labels(.txt) file.
 
@@ -203,9 +207,10 @@ def save_labels_file(labels_folder: str, session_file_path: str, instructions_ti
         for instructions_timing in instructions_timings:
             if instructions_timing is not None:
                 file.write(
-                    f"{instructions_timing['start']}\t{instructions_timing['start'] + instructions_timing['duration']}\t{instructions_timing['label']}\n"
+                    f"{instructions_timing['start']}\t"
+                    f"{instructions_timing['start'] + instructions_timing['duration']}\t"
+                    f"{instructions_timing['label']}\n"
                 )
-    return
 
 def get_instructions(instructions_folder: str) -> List[str]:
     """
@@ -274,7 +279,12 @@ def min_max_normalization(arr: Any) -> Any:
     return normalized_arr
 
 
-def save_cross_correlation(cross_correlation: Any, peaks_indices: List[int], time_values: Any, file_path: str) -> None:
+def save_cross_correlation(
+    cross_correlation: Any,
+    peaks_indices: List[int],
+    time_values: Any,
+    file_path: str
+) -> None:
     """
     Save the cross-correlation plot to a file.
 
@@ -331,7 +341,10 @@ def plot_cross_correlation(
         cross_correlations_folder, os.path.basename(session_file_path)[:-4]
     )
     os.makedirs(cross_correlations_session_folder, exist_ok=True)
-    cross_correlation_figure_file_name = f"{os.path.basename(instruction_file_path)[:-4]}_{os.path.basename(session_file_path)[:-4]}.png"
+    cross_correlation_figure_file_name = (
+        f"{os.path.basename(instruction_file_path)[:-4]}"
+        f"_{os.path.basename(session_file_path)[:-4]}.png"
+    )
 
     time_values = (
         np.arange(len(standardized_normalized_cross_corr)) / sr
