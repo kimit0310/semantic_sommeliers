@@ -1,3 +1,20 @@
+"""
+This module contains utilities for processing audio files. It includes functions for loading
+and preprocessing audio, normalizing volume, applying bandpass filters, performing cross-correlation
+to identify peaks, and managing session timings for audio instructions.
+
+Functions:
+    - load_audio: Load and preprocess audio from a given file path.
+    - normalize_volume: Normalize the volume of an audio signal.
+    - butter_bandpass: Butterworth bandpass filter.
+    - bandpass_filter: Apply a bandpass filter to an audio signal.
+    - perform_cross_correlation: Perform cross-correlation and identify peaks.
+    - get_peak_height: Get the peak height and absolute peak height for a given instruction order.
+    - get_session_timings: Get the start and end times for a session based on instruction order.
+    - process_instruction_files: Process instruction files and align them with session data, using the specified correlations folder for plots.
+    - update_instruction_timings: Update the instruction timings based on cross-correlation peaks.
+"""
+
 import math
 import os
 import numpy as np

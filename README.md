@@ -89,7 +89,7 @@ To set up the Semantic Sommeliers system on your local machine:
 To run individual experiments with a specific session:
 
 ```bash
-python experiments.py --session_name [session_filename.wav] --transcript_tool [whisper|whisperx] [optional parameters]
+python main.py --session_name [session_filename.wav] --transcript_tool [whisper|whisperx] [optional parameters]
 ```
 
 Optional parameters and their default values from `config.py` are:
@@ -106,7 +106,7 @@ Optional parameters and their default values from `config.py` are:
 To automatically process all session files located in your `data/sessions` directory, run the `run_experiments.py` script. This script reads all `.wav` files in the sessions directory and processes them using the default settings specified in `config.py`:
 
 ```bash
-python run_experiments.py
+python batch_run.py --audio_list path/to/audio_list.txt --error_log path/to/error_log.txt
 ```
 
 ## Configuration
@@ -115,9 +115,15 @@ Modify **'config.py'** to change default settings used by the scripts. These set
 
 ## Files and Directories
 
-- **'experiments.py** : Main script for running individual experiments.
-- **'run_experiments.py'** : Wrapper script for running experiments in batch mode.
+- **'main.py** : Main script for running individual experiments.
+- **'batch_fun.py'** : Wrapper script for running experiments in batch mode.
 - **'utility/utility.py'** : Contains all utility functions for audio loading, trascription, and other core functionalities
+- **'utils/general_util.py'** : Contains utility functions for audio loading, transcription, and other core functionalities.
+- **'utils/audio_util.py'** : Contains functions specific to audio processing tasks.
+- **'utils/text_util.py'** : Contains functions specific to text processing tasks.
+- **'config.py'** : Configuration file for setting default parameters.
+
+
 
 ## Contributing
 
@@ -125,4 +131,4 @@ Contributions to improve Semantic Sommeliers are welcome. Please ensure to follo
 
 ## License
 
-Distributed under the GNU Lesser General Public License v3.0 (LGPL 3.0). See LICENSE for more information.
+Distributed under the GNU Lesser General Public License v2.1 (LGPL 2.1). See LICENSE for more information.

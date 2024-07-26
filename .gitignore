@@ -5,3 +5,4 @@ __pycache__/
 Untitled-1.ipynb
 .venv/
 .vscode/
+.mypy_cache/

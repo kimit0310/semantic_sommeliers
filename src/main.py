@@ -1,42 +1,49 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+This script executes the audio and text processing pipeline for a session data. It handles argument parsing,
+directory setup, audio loading, instruction processing, audio transcription, session data tokenization,
+story detection within the session, and final result finalization.
 
-# Imports
-import logging
+Functions:
+    - main: Main function to execute the audio and text processing pipeline.
+"""
+
 import os
 import sys
-import warnings
-import pytorch_lightning as pl
+from typing import Dict, Union
+
 from src.config import Config
-from utils.qa_utilities import (
+from utils.general_util import (
     get_instructions,
-    load_audio,
     setup_directories,
     parse_args,
     finalize_results,
-    find_stories_in_session,
-    load_or_transcribe_audio,
-    process_instruction_files,
-    process_transcripts,
-    tokenize_session_data,
     summarize_results
 )
+from utils.audio_util import (
+    load_audio,
+    process_instruction_files,
+)
+from utils.text_util import (
+    find_stories_in_session,
+    load_or_transcribe_audio,
+    process_transcripts,
+    tokenize_session_data
+)
 
-# Suppress warnings
-warnings.filterwarnings("ignore", category=UserWarning, module='pytorch_lightning')
-warnings.filterwarnings("ignore", category=UserWarning, module='pyannote')
-warnings.filterwarnings("ignore", category=UserWarning, module='torch')
-logging.getLogger("torch").setLevel(logging.ERROR)
-pl.utilities.rank_zero_only.rank_zero_warn = lambda *args, **kwargs: None
-
-# Setup environment
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(script_dir))
 
-
-def main():
+def main() -> None:
+    """
+    Main function to execute the audio and text processing pipeline.
+    
+    It parses arguments, sets up directories, loads audio data, processes instructions,
+    transcribes audio, tokenizes session data, finds stories in the session, and finalizes results.
+    """
     args = parse_args()
-    config = {
+    config: Dict[str, Union[int, float, bool]] = {
         "new_sample_rate": args.new_sample_rate,
         "highcut": args.highcut,
         "lowcut": args.lowcut,
@@ -51,6 +58,7 @@ def main():
         "word_instructions_absolute_peak_height": args.word_instructions_absolute_peak_height,
         "non_word_instructions_absolute_peak_height": args.non_word_instructions_absolute_peak_height,
     }
+
     (
         labels_folder,
         transcriptions_folder,
@@ -58,8 +66,7 @@ def main():
         cross_correlations_folder,
     ) = setup_directories("/data3/mobi/hbn_video_qa/qa_data", config, args.timestamp)
 
-    # print("Session Name:", args.session_name)
-    session_file_path = os.path.join(Config.sessions_folder, args.session_name)
+    session_file_path: str = os.path.join(Config.sessions_folder, args.session_name)
 
     full_waveform, full_sr, _ = load_audio(
         session_file_path,
@@ -79,7 +86,7 @@ def main():
         cross_correlations_folder,
     )
 
-    last_instruction_time = max(
+    last_instruction_time: float = max(
         (timing["start"] + timing["duration"])
         for timing in instructions_timings
         if timing
@@ -97,7 +104,6 @@ def main():
     session_word_by_word = process_transcripts(transcription_result)
     session_tokens_flat = tokenize_session_data(session_word_by_word)
 
-    # find stories
     story_timings, stories_starts = find_stories_in_session(
         session_word_by_word,
         session_tokens_flat,
@@ -106,21 +112,17 @@ def main():
         full_sr,
         args.story_absolute_peak_height,
     )
-    # Adjust story timings by adding the last_instruction_time
     adjusted_story_timings = [
-        {**timing, "start": timing["start"] + last_instruction_time}
+        {**timing, "start": float(timing["start"]) + last_instruction_time}
         for timing in story_timings
         if timing
     ]
 
     finalize_results(
-        labels_folder, session_file_path, adjusted_story_timings, instructions_timings
+        labels_folder, session_file_path, adjusted_story_timings, [timing for timing in instructions_timings if timing]
     )
     
     summarize_results(labels_folder)
 
-
 if __name__ == "__main__":
     main()
-
-# Try Tiny whisper but maybe not?

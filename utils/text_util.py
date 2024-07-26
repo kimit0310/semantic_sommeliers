@@ -1,3 +1,22 @@
+"""
+This module contains utilities for processing and transcribing audio files, as well as extracting and analyzing
+semantic information from transcriptions. It includes functions for loading or transcribing audio, processing 
+transcripts, tokenizing text, extracting semantic embeddings, computing cosine similarity, and identifying stories 
+within session data based on semantic similarity.
+
+Functions:
+    - load_or_transcribe_audio: Load or transcribe audio based on the necessity of transcription.
+    - transcribe_with_whisper: Transcribe a given waveform using Whisper.
+    - transcribe_with_whisperx: Transcribe a given waveform using WhisperX and format the output.
+    - process_transcripts: Process raw transcript data into a structured format.
+    - preprocess_and_tokenize: Preprocess and tokenize text by removing punctuation and converting to lowercase.
+    - extract_semantic_embeddings: Extract semantic embeddings from a sentence using a given model.
+    - compute_cosine_similarity: Compute the cosine similarity between two sets of embeddings.
+    - tokenize_session_data: Tokenize the text from the session transcripts.
+    - find_story_in_session: Find a story within the session using semantic similarity.
+    - find_stories_in_session: Find and time stories within the session data without adjusting the waveform session.
+"""
+
 import json
 import os
 import string
@@ -5,11 +24,11 @@ from typing import List, Optional, Dict, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import whisperx
-from scipy.signal import find_peaks
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-from transformers import WhisperTimeStampLogitsProcessor, pipeline
+import whisperx # type: ignore
+from scipy.signal import find_peaks # type: ignore
+from sentence_transformers import SentenceTransformer # type: ignore
+from sklearn.metrics.pairwise import cosine_similarity # type: ignore
+from transformers import WhisperTimeStampLogitsProcessor, pipeline # type: ignore
 
 from src.config import Config
 from utils.general_util import generate_json, min_max_normalization
@@ -108,20 +127,16 @@ def transcribe_with_whisperx(waveform: Union[torch.Tensor, np.ndarray], device: 
         "large", device, compute_type="int8", language="en"
     )
 
-    # Convert waveform to NumPy array if it's a PyTorch tensor
     if isinstance(waveform, torch.Tensor):
         waveform = waveform.numpy()
 
-    # Check if the waveform is empty and return early if it is
     if waveform.size == 0:
         print("Warning: Received empty waveform for transcription.")
-        return {}  # Return an empty dict or appropriate error signal
+        return {} 
 
-    # Ensure the waveform is in float32 format, normalized if necessary
     if waveform.dtype != np.float32:
         waveform = waveform.astype(np.float32) / np.max(np.abs(waveform))
 
-    # Transcribe using WhisperX with the prepared waveform
     result = whisperx_model.transcribe(waveform, language="en", batch_size=16)
     model_a, metadata = whisperx.load_align_model(language_code="en", device=device)
     aligned_result = whisperx.align(
@@ -163,33 +178,6 @@ def process_transcripts(result: dict) -> List[Dict[str, Union[str, float, None]]
             }
         )
     return session_word_by_word
-
-def extract_sentence(data: List[Dict[str, Union[str, float, None]]], start_time: float, end_time: float) -> str:
-    """
-    Extracts and returns a sentence from the given data within the specified time range.
-
-    Args:
-        data (List[Dict[str, Union[str, float, None]]]): Transcript data.
-        start_time (float): Start time of the range.
-        end_time (float): End time of the range.
-
-    Returns:
-        str: Extracted sentence.
-    """
-    sentence = ""
-    for item in data:
-        # Check if the current item's time overlaps with the given time range
-        if (
-            "start" in item
-            and "end" in item
-            and item["start"] is not None
-            and item["end"] is not None
-            and item["start"] <= end_time
-            and item["end"] >= start_time
-        ):
-            sentence += item["text"]
-    return sentence.strip()
-
 
 def preprocess_and_tokenize(text: str) -> List[str]:
     """
@@ -247,10 +235,11 @@ def tokenize_session_data(session_word_by_word: List[Dict[str, Union[str, float,
         List[str]: List of tokens.
     """
     session_tokens = [
-        preprocess_and_tokenize(item["text"]) for item in session_word_by_word
+        preprocess_and_tokenize(item["text"]) for item in session_word_by_word if isinstance(item["text"], str)
     ]
     session_tokens_flat = [item for sublist in session_tokens for item in sublist]
     return session_tokens_flat
+
 
 def find_story_in_session(
     session_transcript: List[Dict[str, Union[str, float, None]]],
@@ -272,19 +261,16 @@ def find_story_in_session(
     Returns:
         Optional[float]: Start time of the found story, if any.
     """
-    model = SentenceTransformer(
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    )
+    model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     times = [
         session_transcript[i]["start"]
         for i in range(len(session_tokens) - len(story_tokens) + 1)
-        if i < len(session_transcript)
+        if i < len(session_transcript) and isinstance(session_transcript[i]["start"], float)
     ]
+    times = [t for t in times if isinstance(t, float)]
     similarities = []
     for i, _ in enumerate(times):
-        embeddings1 = extract_semantic_embeddings(
-            model, " ".join(session_tokens[i : i + len(story_tokens)])
-        )
+        embeddings1 = extract_semantic_embeddings(model, " ".join(session_tokens[i : i + len(story_tokens)]))
         embeddings2 = extract_semantic_embeddings(model, " ".join(story_tokens))
         similarity = compute_cosine_similarity(embeddings1, embeddings2)
         similarities.append(similarity)
@@ -308,15 +294,18 @@ def find_story_in_session(
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.legend()
-    
+
     if len(peaks_indices) > 0 and max(normalized_similarities) > story_absolute_peak_height:
         i = peaks_indices[0]
-        plt.scatter(times[i], normalized_similarities[i], color="red", zorder=5)
-        plt.savefig(file_path)
-        return times[i]
+        plt.scatter(float(times[i]), normalized_similarities[i], color="red", zorder=5) # type: ignore
+        if file_path:
+            plt.savefig(file_path)
+        return float(times[i]) # type: ignore
 
-    plt.savefig(file_path)
+    if file_path:
+        plt.savefig(file_path)
     return None
+
 
 def find_stories_in_session(
     session_word_by_word: List[Dict[str, Union[str, float, None]]],
@@ -340,8 +329,8 @@ def find_stories_in_session(
     Returns:
         Tuple[List[Optional[Dict[str, Union[int, float, str]]]], List[float]]: List of story timings and story start times.
     """
-    story_timings = [None] * len(Config.stories)
-    stories_starts = []
+    story_timings: List[Optional[Dict[str, Union[int, float, str]]]] = [None] * len(Config.stories)
+    stories_starts: List[float] = []
     for story_index, story in enumerate(Config.stories):
         story_tokens = [preprocess_and_tokenize(item) for item in story.split(" ")]
         story_tokens_flat = [item for sublist in story_tokens for item in sublist]

@@ -1,9 +1,24 @@
+"""
+This module contains general utility functions for processing session data. It includes functions for:
+- Parsing command line arguments.
+- Setting up directories for data storage.
+- Generating JSON files.
+- Saving labels to files.
+- Retrieving instructions and session file paths.
+- Normalizing arrays.
+- Saving and plotting cross-correlation data.
+- Finalizing and summarizing session results.
+
+These utilities are used for various tasks such as loading audio, processing instructions, transcribing audio,
+and finding stories in session data.
+"""
+
 import argparse
 import csv
 import glob
 import json
 import os
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Union
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -117,7 +132,7 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def setup_directories(base_dir: str, config: Config, timestamp: str) -> Tuple[str, str, str, str]:
+def setup_directories(base_dir: str, config: Dict[str, Union[int, float, bool]], timestamp: str) -> Tuple[str, str, str, str]:
     """
     Set up directories for the current run, creating unique folders based on the timestamp.
 

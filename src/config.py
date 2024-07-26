@@ -1,6 +1,31 @@
 import os
 
 class Config:
+    """
+    Configuration parameters for the session processing pipeline.
+
+    Attributes:
+        data_folder (str): Path to the main data folder.
+        instructions_folder (str): Path to the folder containing instructions (ground truth).
+        sessions_folder (str): Path to the folder containing extracted audio sessions.
+        cross_correlations_folder (str): Path to the folder for saving cross-correlation plot data.
+        story1 (str): Text of the first story.
+        story2 (str): Text of the second story.
+        stories (List[str]): List containing all stories.
+        normalization (bool): Whether to enable normalization of audio.
+        filtering (bool): Whether to enable filtering of audio.
+        new_sample_rate (int): The sample rate to which audio will be resampled.
+        lowcut (float): Low cut-off frequency for bandpass filtering.
+        highcut (float): High cut-off frequency for bandpass filtering.
+        seconds_threshold (float): Threshold in seconds for audio processing.
+        story_absolute_peak_height (float): Absolute peak height for story detection.
+        long_instructions_peak_height (float): Peak height for detecting long instructions.
+        word_instructions_peak_height (float): Peak height for detecting word instructions.
+        non_word_instructions_peak_height (float): Peak height for detecting non-word instructions.
+        long_instructions_absolute_peak_height (float): Absolute peak height for detecting long instructions.
+        word_instructions_absolute_peak_height (float): Absolute peak height for detecting word instructions.
+        non_word_instructions_absolute_peak_height (float): Absolute peak height for detecting non-word instructions.
+    """
     ############## PARAMS ##############
     data_folder = "/data3/mobi/hbn_video_qa/qa_data"
     instructions_folder = os.path.join(data_folder, "instructions")
