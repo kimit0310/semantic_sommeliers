@@ -9,5 +9,5 @@ torchaudio==0.13.0+cu117 --extra-index-url https://download.pytorch.org/whl/cu11
 scipy==1.11.1
 sentence-transformers==3.0.1
 scikit-learn==1.5.0
-transformers==4.43.2
+transformers==4.48.0
 whisperx @ git+https://github.com/m-bain/whisperx.git
