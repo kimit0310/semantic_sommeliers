@@ -13,7 +13,7 @@ pyannote-audio = "1.1.1"
 ffmpeg-python = "0.2.0"
 matplotlib = "3.7.2"
 tqdm = "4.66.3"
-transformers = "4.48.0"
+transformers = "4.53.0"
 
 
 [build-system]
